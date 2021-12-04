@@ -17,7 +17,7 @@
 */
 
 // T E S T
-
+// TEST 2
 
 let canvas = document.querySelector('canvas');
 let ctx = canvas.getContext('2d');
@@ -190,13 +190,13 @@ function draw(step) {
 
     switch (k) {
       case -1:
-        ctx.strokeStyle = `cyan`;//`hsl(${step / 100},100,100)`;
+        ctx.strokeStyle = `hsl(0,100,100)`;//`hsl(${step / 100},100,100)`;
         break;
       case 0:
-        ctx.strokeStyle = 'magenta';
+        ctx.strokeStyle = 'hsl(10,100,100)';
         break;
       case 1:
-        ctx.strokeStyle = 'yellow';
+        ctx.strokeStyle = 'hsl(20,100,100)';
         break;
     }
 
