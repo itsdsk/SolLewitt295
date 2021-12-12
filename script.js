@@ -16,11 +16,61 @@
   
 */
 
-// T E S T
-// TEST 2
+
+document.addEventListener('click', function () {
+
+  audioElement.play();
+  console.log('playing');
+
+
+  // // check if context is in suspended state (autoplay policy)
+  // if (audioContext.state === 'suspended') {
+  //     audioContext.resume();
+  // }
+
+  // // play or pause track depending on state
+  // if (this.dataset.playing === 'false') {
+  //     audioElement.play();
+  //     this.dataset.playing = 'true';
+  // } else if (this.dataset.playing === 'true') {
+  //     audioElement.pause();
+  //     this.dataset.playing = 'false';
+  // }
+
+}, false);
 
 let canvas = document.querySelector('canvas');
 let ctx = canvas.getContext('2d');
+
+
+const audioContext = new AudioContext();
+
+// get the audio element
+const audioElement = document.querySelector('audio');
+
+audioElement.addEventListener('canplaythrough', () => {
+  console.log('loaded');
+})
+
+// pass it into the audio context
+const track = audioContext.createMediaElementSource(audioElement);
+
+track.connect(audioContext.destination);
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+
+var analyser = audioContext.createAnalyser();
+track.connect(analyser);
+analyser.fftSize = 2048;
+var bufferLength = analyser.frequencyBinCount; //1024
+var dataArray = new Uint8Array(bufferLength);
+  console.log(bufferLength)
+
+  console.log(canvas.width)
+
+var sliceWidth = canvas.width  * 1.0 / bufferLength * 2;
 
 ctx.imageSmoothingEnabled = false;
 
@@ -161,7 +211,7 @@ function draw(step) {
   hue += 0.5;
   saturation += 0.03;
   // lightness += 1;
-  
+
   backgroundColor = `hsl(${hue}, ${50 + (15 * (Math.sin(saturation) + 1))}%, ${lightness % 100}%)`;
   wall();
 
@@ -178,7 +228,7 @@ function draw(step) {
 
   //   makaron(x, y, radius, thickness, rotation * (i % 2 == 0 ? 1 : -1));
   // }
-  for(var k = -1; k < 2; k++) {
+  for (var k = -1; k < 2; k++) {
     ctx.save();
     ctx.translate(k * (canvas.width * 0.4), 0);
 
@@ -193,15 +243,15 @@ function draw(step) {
         ctx.strokeStyle = `hsl(0,100,100)`;//`hsl(${step / 100},100,100)`;
         break;
       case 0:
-        ctx.strokeStyle = 'hsl(10,100,100)';
+        ctx.strokeStyle = 'hsl(5,100,100)';
         break;
       case 1:
-        ctx.strokeStyle = 'hsl(20,100,100)';
+        ctx.strokeStyle = 'hsl(10,100,100)';
         break;
     }
 
     var num_shapes = 3;
-    for(var i = 0; i < num_shapes; i++) {
+    for (var i = 0; i < num_shapes; i++) {
       let radiusFraction = 0.25;
 
       ctx.save();
@@ -224,7 +274,7 @@ function draw(step) {
     ctx.restore();
   }
 
-  
+
   // polygonStar(6, 50, 0);
   polygon(30, canvas.height * 0.33);
   polygon(45, canvas.height * 0.66);
@@ -237,14 +287,33 @@ function draw(step) {
 
 let step = 0;
 function loop() {
+  
+  
+  
   draw(step);
   step += 1;
+  //sound stuffs
+  var x = 0;
+  analyser.getByteTimeDomainData(dataArray);
+  for (var i = 0; i < bufferLength; i++) {
+    var v = dataArray[i] / 128.0;
+    var y = v * ctx.canvas.height / 2;
+
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+
+    x += sliceWidth;
+  }
+  ctx.lineTo(canvas.width, canvas.height / 2);
+  ctx.stroke();
   window.requestAnimationFrame(loop);
 }
 
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+
 loop();
 
 
@@ -261,11 +330,6 @@ function spinningStars() {
   polygonStar(6, 100, step * 0.00325);
   polygonStar(6, 50, step * 0.0035);
 }
-
-
-// setInterval(() => {
-//  changeBackgroundColor();
-// }, 2000);
 
 function lerpColour(source, target) {
   // let r = s
@@ -284,53 +348,9 @@ function changeBackgroundColor() {
 ctx.canvas.addEventListener('click', () => {
 
   // backgroundColor = backgroundColor === 'black' ? 'yellow' : 'black';
+
   changeBackgroundColor();
 
 });
 
 
-      // polygon(3, 200 - 15 * i, ((Math.PI * 2)/ 6) * i);
-  // x, y, radius, thickness, rotation
-
-  // polygonWithOffset(5, Math.min(canvas.width, canvas.height) * 0.25);
-  // ctx.stroke();
-
-  // polygonWithOffset(6, 10, -rotation);
-
-
-  // for (let i = 0; i < 6; i += 1) {
-  //   square(canvas.width/2, canvas.height/2, 200 - 30 * i, i * 15); 
-  // }
-
-  // draw square outline
-  // ctx.beginPath();
-  // var square_length = Math.min(canvas.width, canvas.height) * 0.5;
-  // ctx.rect((canvas.width - square_length) / 2, (canvas.height - square_length) / 2, square_length, square_length);
-
-
-
-
-// function star(num_points, rotation = 0) {
-//   ctx.beginPath();
-//   var radius = Math.min(canvas.width, canvas.height) * 0.25;
-//   var start_x = (canvas.width / 2) + (Math.sin(rotation) * radius);
-//   var start_y = (canvas.height / 2) + (Math.cos(rotation) * radius);
-//   ctx.moveTo(start_x, start_y);
-//   for(let i = 0; i < num_points; i++) {
-//     // inner point
-
-//     // outer point
-//     //
-//     // final inner point
-//     if(i == num_points - 1) {
-//       //
-//     }
-//   }
-//   ctx.closePath();
-//   ctx.stroke();
-// }
-
-
-
-// Instruction
-// "Six white geometric figures (outlines) superimposed on a black wall."

@@ -9,3 +9,7 @@ canvas {
   display: block;
 }
 
+audio {
+  /* display: hidden; */
+  /*audio isn't loaded in Chome when display:hidden?*/
+}
