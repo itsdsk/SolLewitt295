@@ -17,6 +17,7 @@
 */
 
 
+
 document.addEventListener('click', function () {
 
   audioElement.play();
@@ -288,11 +289,15 @@ function draw(step) {
 let step = 0;
 function loop() {
   
-  
+  //check if sound is playing
+  //then draw line
   
   draw(step);
   step += 1;
   //sound stuffs
+  ctx.save();
+  // ctx.beginPath??>?
+  ctx.beginPath();
   var x = 0;
   analyser.getByteTimeDomainData(dataArray);
   for (var i = 0; i < bufferLength; i++) {
@@ -309,6 +314,7 @@ function loop() {
   }
   ctx.lineTo(canvas.width, canvas.height / 2);
   ctx.stroke();
+  ctx.restore();
   window.requestAnimationFrame(loop);
 }
 
