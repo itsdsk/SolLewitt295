@@ -9,6 +9,11 @@ canvas {
   display: block;
 }
 
+
+canvas.playBtn {
+  cursor: pointer;
+}
+
 audio {
   /* display: hidden; */
   /*audio isn't loaded in Chome when display:hidden?*/

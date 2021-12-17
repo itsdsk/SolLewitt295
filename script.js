@@ -1,33 +1,65 @@
 'use strict';
 
-// Instruction: "Six white geometric figures (outlines) superimposed on a black wall."
+//Global variables
+let step = 0;
+let isStarted = false;
 
-// TODO:
-//  - 6 different shapes selected randomly
-//  - globalCompositeOperation
+//CANVAS SETUP
+const canvas = document.querySelector('canvas');
+const ctx = canvas.getContext('2d');
 
-/*
-  Current shapes:
-  - polygon
-  - polygon star
-  - makaron
-  - circle?
-  - polygonWithOffset
-  
-*/
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+ctx.imageSmoothingEnabled = false;
 
 
+//AUDIO SETUP
+const audioContext = new AudioContext();
 
-document.addEventListener('click', function () {
+// get the audio element
+const audioElement = document.querySelector('audio');
 
+// pass it into the audio context
+const track = audioContext.createMediaElementSource(audioElement);
+
+track.connect(audioContext.destination);
+
+
+var analyser = audioContext.createAnalyser();
+track.connect(analyser);
+analyser.fftSize = 2048;
+var bufferLength = analyser.frequencyBinCount; //1024
+var dataArray = new Uint8Array(bufferLength);
+
+var sliceWidth = canvas.width / bufferLength * 2;
+
+
+
+let startColor = getRandomColor();
+let targetColor = getRandomColor();
+let colorChangeSpeed = 60 * 5; //change target color every n frames /60fps(?)
+
+
+// Window events
+window.addEventListener('resize', draw);
+window.addEventListener('load', draw);
+
+
+//autoplay
+
+
+loop();
+
+canvas.addEventListener('click', function () {
+  isStarted = true;
   audioElement.play();
-  console.log('playing');
+  canvas.classList.remove('playBtn');
 
 
   // // check if context is in suspended state (autoplay policy)
-  // if (audioContext.state === 'suspended') {
-  //     audioContext.resume();
-  // }
+  if (audioContext.state === 'suspended') {
+    audioContext.resume();
+  }
 
   // // play or pause track depending on state
   // if (this.dataset.playing === 'false') {
@@ -40,163 +72,20 @@ document.addEventListener('click', function () {
 
 }, false);
 
-let canvas = document.querySelector('canvas');
-let ctx = canvas.getContext('2d');
 
-
-const audioContext = new AudioContext();
-
-// get the audio element
-const audioElement = document.querySelector('audio');
-
-audioElement.addEventListener('canplaythrough', () => {
-  console.log('loaded');
-})
-
-// pass it into the audio context
-const track = audioContext.createMediaElementSource(audioElement);
-
-track.connect(audioContext.destination);
-
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-
-var analyser = audioContext.createAnalyser();
-track.connect(analyser);
-analyser.fftSize = 2048;
-var bufferLength = analyser.frequencyBinCount; //1024
-var dataArray = new Uint8Array(bufferLength);
-  console.log(bufferLength)
-
-  console.log(canvas.width)
-
-var sliceWidth = canvas.width  * 1.0 / bufferLength * 2;
-
-ctx.imageSmoothingEnabled = false;
-
-let backgroundColor = 'black';
-
-
-function wall() {
-  ctx.fillStyle = backgroundColor;
+function background(color) {
+  ctx.fillStyle = color;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-function square(x, y, width, rotationInDegrees) {
-  ctx.save();
-  ctx.beginPath();
-  ctx.translate(x, y);
-  ctx.rotate(rotationInDegrees * Math.PI / 180);
-  ctx.rect(-width / 2, -width / 2, width, width);
-  ctx.stroke();
-  ctx.restore();
-}
-
-function circle(x, y, radius) {
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, Math.PI * 2);
-  ctx.stroke();
-}
-
-function polygon(num_sides, radius, rotation = 0) {
-  ctx.beginPath();
-  // var radius = Math.min(canvas.width, canvas.height) * 0.25;
-  var start_x = (canvas.width / 2) + (Math.sin(rotation) * radius);
-  var start_y = (canvas.height / 2) + (Math.cos(rotation) * radius);
-  ctx.moveTo(start_x, start_y);
-  for (let i = 0; i < num_sides; i++) {
-    var angle = rotation + ((i / num_sides) * (2 * Math.PI));
-    var x_pos = Math.sin(angle) * radius;
-    var y_pos = Math.cos(angle) * radius;
-    ctx.lineTo((canvas.width / 2) + x_pos, (canvas.height / 2) + y_pos);
-  }
-  ctx.closePath();
-  ctx.stroke();
-}
-
-
-function polygonStar(num_sides, radius, rotation = 0) {
-  ctx.beginPath();
-  var start_x = (canvas.width / 2) + (Math.sin(rotation) * radius);
-  var start_y = (canvas.height / 2) + (Math.cos(rotation) * radius);
-  ctx.moveTo(start_x, start_y);
-
-  let outerRadius = radius;
-  let innerRadius = radius * 0.5;
-  for (let i = 0; i < num_sides * 2; i++) {
-
-    var angle = rotation + ((i / (num_sides * 2)) * (2 * Math.PI));
-    let x_pos, y_pos;
-
-    radius = i % 2 === 0 ? outerRadius : innerRadius;
-
-    x_pos = Math.sin(angle) * radius;
-    y_pos = Math.cos(angle) * radius;
-
-    let x = (canvas.width / 2) + x_pos;
-    let y = (canvas.height / 2) + y_pos;
-    ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-  ctx.stroke();
-}
-
-function polygonWithOffset(num_sides, radius, rotation = 0) {
-  ctx.strokeStyle = 'white';
-  ctx.lineWidth = 10;
-  ctx.beginPath();
-  // var radius = Math.min(canvas.width, canvas.height) * 0.25;
-  var start_x = (canvas.width / 2) + (Math.sin(rotation) * radius);
-  var start_y = (canvas.height / 2) + (Math.cos(rotation) * radius);
-  ctx.moveTo(start_x, start_y);
-  for (let i = 0; i < num_sides; i++) {
-    var angle = rotation + ((i / num_sides) * (2 * Math.PI));
-    var x_pos = Math.sin(angle) * radius;
-    var y_pos = Math.cos(angle) * radius;
-    if (i > 0) {
-      var offsetAngle = Math.random() * Math.PI * 2;
-      var offsetRadius = radius * 0.1;
-      x_pos += Math.sin(offsetAngle) * offsetRadius;
-      y_pos += Math.cos(offsetAngle) * offsetRadius;
-    }
-    ctx.lineTo((canvas.width / 2) + x_pos, (canvas.height / 2) + y_pos);
-  }
-  ctx.closePath();
-  ctx.stroke();
-}
-
-
-function makaron(x, y, radius, thickness, rotation) {
-  // ctx.save();
-  ctx.beginPath();
-
-  // ctx.rotate(rotation * Math.PI / 180);
-
-  let angleLength = Math.PI / 2;
-  let startAngle = rotation;
-  let endAngle = rotation + angleLength;
-
-  ctx.arc(x, y, radius, startAngle, endAngle);
-
-  let innerX = x + Math.cos(endAngle) * (radius - thickness);
-  let innerY = y + Math.sin(endAngle) * (radius - thickness);
-
-  ctx.lineTo(innerX, innerY);
-  ctx.arc(x, y, radius - thickness, endAngle, startAngle, true);
-  ctx.closePath();
-
-  ctx.stroke();
-  // ctx.restore();
-}
 
 
 
-let hue = 0;
-let saturation = 80;
-let lightness = 50;
 
-function draw(step) {
+
+
+
+function draw() {
   ctx.save();
   ctx.translate(-0.5, -0.5);
 
@@ -209,26 +98,50 @@ function draw(step) {
   ctx.strokeStyle = 'cyan';
   ctx.lineWidth = 25 + (Math.sin(step * 0.001) + 1) * 250;
 
-  hue += 0.5;
-  saturation += 0.03;
-  // lightness += 1;
 
-  backgroundColor = `hsl(${hue}, ${50 + (15 * (Math.sin(saturation) + 1))}%, ${lightness % 100}%)`;
-  wall();
+  var currentTime = audioElement.currentTime;
+  // var currentTime = audioContext.getOutputTimestamp().contextTime;
+
+  // jump if onset detected
+  var isOnsetDetected = false;
+  if (onsets[0] < currentTime) {
+    isOnsetDetected = true;
+    onsets.shift(); // remove onset from array
+  }
+  var beatReactionProbability = 1.0;
+  if ((isOnsetDetected && Math.floor(Math.random() * (1 / beatReactionProbability)) % (1 / beatReactionProbability) == 0)) {
+    step += 5 * (Math.random() < 0.5 ? -1 : 1);
+  }
+
+  // change colours if beat detected
+  var isBeatDetected = false;
+  if (beats[0] < currentTime) {
+    isBeatDetected = true;
+    beats.shift(); // remove beat from array
+  }
+  if (isBeatDetected && beats.length % 4 == 0) {
+    startColor = targetColor;
+    targetColor = getRandomColor();
+  }
+
+  if (step % colorChangeSpeed === 0) {
+    startColor = targetColor;
+    targetColor = getRandomColor();
+  }
+
+  // backgroundColor = `hsl(${hue}, ${50 + (15 * (Math.sin(saturation) + 1))}%, ${lightness % 100}%)`;
+  // background(backgroundColor);
+
+  let lerpedColor = lerpColor(startColor, targetColor, (step % colorChangeSpeed) / colorChangeSpeed);
+
+  let bgColor = CSSColor(lerpedColor);
+  background(bgColor);
+
+
 
   ctx.globalCompositeOperation = 'difference';
 
-  // for (let i = 0; i < 6; i += 1) {
-  //   ctx.beginPath();
 
-  //   let x = Math.floor(canvas.width / 2);
-  //   let y = Math.floor(canvas.height / 2);
-  //   let radius = 200;
-  //   let thickness = 50 + 20 * i;
-  //   let rotation = step * ((1 + i) / 500) + i * (Math.PI * 2) / 6;
-
-  //   makaron(x, y, radius, thickness, rotation * (i % 2 == 0 ? 1 : -1));
-  // }
   for (var k = -1; k < 2; k++) {
     ctx.save();
     ctx.translate(k * (canvas.width * 0.4), 0);
@@ -275,88 +188,86 @@ function draw(step) {
     ctx.restore();
   }
 
-
   // polygonStar(6, 50, 0);
   polygon(30, canvas.height * 0.33);
   polygon(45, canvas.height * 0.66);
   polygon(60, canvas.height * 0.99);
   ctx.restore();
 
+
+
+
 }
 
 
 
-let step = 0;
+
+
 function loop() {
-  
+
   //check if sound is playing
   //then draw line
-  
+
   draw(step);
   step += 1;
+
+  //Get data from analyser
+  analyser.getByteTimeDomainData(dataArray);
+
+  var x = 0;
+
+  //circles
+  for (let i = 0; i < bufferLength; i++) {
+    var v = dataArray[i] / 128.0;
+    var y = v * ctx.canvas.height / 2;
+    x = sliceWidth * i;
+    if (i % 50 === 0) {
+      // circle(x, y, 10 + v * 50 * v);
+    }
+
+  }
+
+
+  x = 0;
   //sound stuffs
   ctx.save();
   // ctx.beginPath??>?
   ctx.beginPath();
-  var x = 0;
-  analyser.getByteTimeDomainData(dataArray);
+  x = 0;
+  ctx.moveTo(0, canvas.height / 2);
+
   for (var i = 0; i < bufferLength; i++) {
     var v = dataArray[i] / 128.0;
+    // console.log(v);
     var y = v * ctx.canvas.height / 2;
 
-    if (i === 0) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
-    }
+    // if (i === 0) {
+    //   ctx.moveTo(x, y);
+    // } else {
+    ctx.lineTo(x, y);
+    // }
+
+
 
     x += sliceWidth;
   }
   ctx.lineTo(canvas.width, canvas.height / 2);
+  ctx.fillStyle = CSSColor(targetColor);
+  ctx.strokeStyle = 'white';
+  // ctx.lineWidth = 5;
   ctx.stroke();
   ctx.restore();
+
+  if (isStarted === false) {
+    canvas.classList.add('playBtn');
+    playBtn();
+  }
+
+  // if (audioContext) {
+  //   var audioTimestamp = audioContext.getOutputTimestamp();
+  //   console.log(`contextTime: ${audioTimestamp.contextTime}`);
+  //   console.log(`performanceTime: ${audioTimestamp.performanceTime}`);
+  // }
+
   window.requestAnimationFrame(loop);
 }
-
-
-
-loop();
-
-
-window.addEventListener('resize', draw);
-window.addEventListener('load', draw);
-
-
-function spinningStars() {
-  //Spinning stars
-  polygonStar(6, 300, step * 0.00225);
-  polygonStar(6, 250, step * 0.0025);
-  polygonStar(6, 200, step * 0.00275);
-  polygonStar(6, 150, step * 0.003);
-  polygonStar(6, 100, step * 0.00325);
-  polygonStar(6, 50, step * 0.0035);
-}
-
-function lerpColour(source, target) {
-  // let r = s
-}
-
-function changeBackgroundColor() {
-  let r = Math.random() * 255;
-  let g = Math.random() * 255;
-  let b = Math.random() * 255;
-
-  backgroundColor = `rgb(${r}, ${g}, ${b})`;
-}
-
-
-
-ctx.canvas.addEventListener('click', () => {
-
-  // backgroundColor = backgroundColor === 'black' ? 'yellow' : 'black';
-
-  changeBackgroundColor();
-
-});
-
-
