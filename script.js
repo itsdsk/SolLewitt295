@@ -3,6 +3,7 @@
 //Global variables
 let step = 0;
 let isStarted = false;
+let isPaused = false;
 
 //CANVAS SETUP
 const canvas = document.querySelector('canvas');
@@ -19,6 +20,27 @@ const audioContext = new AudioContext();
 // get the audio element
 const audioElement = document.querySelector('audio');
 
+//loop the audio
+audioElement.addEventListener('ended', (event) => {
+  audioElement.play();
+})
+
+//play and pause audio 
+document.addEventListener('click', event => {
+
+    if (isStarted === true) {
+      if (isPaused === false) {
+        audioElement.pause();
+        isPaused = true;
+      } else {
+        audioElement.play();
+        isPaused = false;
+
+      }
+  }
+
+});
+
 // pass it into the audio context
 const track = audioContext.createMediaElementSource(audioElement);
 
@@ -33,7 +55,8 @@ var dataArray = new Uint8Array(bufferLength);
 
 var sliceWidth = canvas.width / bufferLength * 2;
 
-
+var lastBeatTime = -1;
+var lastOnsetTime = -2;
 
 let startColor = getRandomColor();
 let targetColor = getRandomColor();
@@ -73,10 +96,7 @@ canvas.addEventListener('click', function () {
 }, false);
 
 
-function background(color) {
-  ctx.fillStyle = color;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
+
 
 
 
@@ -87,47 +107,58 @@ function background(color) {
 
 function draw() {
   ctx.save();
-  ctx.translate(-0.5, -0.5);
 
+  ctx.translate(-0.5, -0.5);
   ctx.imageSmoothingEnabled = false;
   ctx.imageSmoothingQuality = "high";
 
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
   //outline settings
-  ctx.strokeStyle = 'cyan';
+  ctx.strokeStyle = 'magenta';
   ctx.lineWidth = 25 + (Math.sin(step * 0.001) + 1) * 250;
 
 
   var currentTime = audioElement.currentTime;
   // var currentTime = audioContext.getOutputTimestamp().contextTime;
 
-  // jump if onset detected
+  // check if onset detected
   var isOnsetDetected = false;
   if (onsets[0] < currentTime) {
     isOnsetDetected = true;
-    onsets.shift(); // remove onset from array
+    lastOnsetTime = onsets.shift(); // remove onset from array
   }
+  // move step on onset detection
   var beatReactionProbability = 1.0;
   if ((isOnsetDetected && Math.floor(Math.random() * (1 / beatReactionProbability)) % (1 / beatReactionProbability) == 0)) {
-    step += 5 * (Math.random() < 0.5 ? -1 : 1);
+    step += 5;// * (Math.random() < 0.5 ? -1 : 1);
   }
 
-  // change colours if beat detected
+  // check if beat detected
   var isBeatDetected = false;
   if (beats[0] < currentTime) {
     isBeatDetected = true;
-    beats.shift(); // remove beat from array
-  }
-  if (isBeatDetected && beats.length % 4 == 0) {
-    startColor = targetColor;
-    targetColor = getRandomColor();
-  }
+    lastBeatTime = beats.shift(); // remove beat from array
+    
 
-  if (step % colorChangeSpeed === 0) {
     startColor = targetColor;
     targetColor = getRandomColor();
   }
+/*
+  // if beat AND onset
+  var loudBeatThreshold = 0.0125; // time
+  if (Math.abs(lastBeatTime - lastOnsetTime) < loudBeatThreshold) {
+    lastBeatTime = -1;
+    lastOnsetTime = -2;
+    startColor = targetColor;
+    targetColor = getRandomColor();
+  }
+*/
+
+  // if (step % colorChangeSpeed === 0) {
+  //   startColor = targetColor;
+  //   targetColor = getRandomColor();
+  // }
 
   // backgroundColor = `hsl(${hue}, ${50 + (15 * (Math.sin(saturation) + 1))}%, ${lightness % 100}%)`;
   // background(backgroundColor);
@@ -142,7 +173,9 @@ function draw() {
   ctx.globalCompositeOperation = 'difference';
 
 
+  //
   for (var k = -1; k < 2; k++) {
+    // make 3 circles of shapes
     ctx.save();
     ctx.translate(k * (canvas.width * 0.4), 0);
 
@@ -154,13 +187,15 @@ function draw() {
 
     switch (k) {
       case -1:
-        ctx.strokeStyle = `hsl(0,100,100)`;//`hsl(${step / 100},100,100)`;
+        //l set to 100 is always white
+
+        ctx.strokeStyle = `hsl(0,100,50)`;//`hsl(${step / 100},100,100)`;
         break;
       case 0:
-        ctx.strokeStyle = 'hsl(5,100,100)';
+        ctx.strokeStyle = 'hsl(5,100,50)';
         break;
       case 1:
-        ctx.strokeStyle = 'hsl(10,100,100)';
+        ctx.strokeStyle = 'hsl(10,100,50)';
         break;
     }
 
@@ -193,14 +228,7 @@ function draw() {
   polygon(45, canvas.height * 0.66);
   polygon(60, canvas.height * 0.99);
   ctx.restore();
-
-
-
-
 }
-
-
-
 
 
 function loop() {
@@ -219,11 +247,15 @@ function loop() {
   //circles
   for (let i = 0; i < bufferLength; i++) {
     var v = dataArray[i] / 128.0;
+    v = Math.pow(v, 16);
+    // v /= 2;
+    // v /= 5;
+
     var y = v * ctx.canvas.height / 2;
     x = sliceWidth * i;
-    if (i % 50 === 0) {
-      // circle(x, y, 10 + v * 50 * v);
-    }
+    // if (i % 50 === 0) {
+      circle(x, y, 10 + v * 50 * v);
+    // }
 
   }
 
@@ -232,6 +264,7 @@ function loop() {
   //sound stuffs
   ctx.save();
   // ctx.beginPath??>?
+  /*
   ctx.beginPath();
   x = 0;
   ctx.moveTo(0, canvas.height / 2);
@@ -251,7 +284,9 @@ function loop() {
 
     x += sliceWidth;
   }
+  
   ctx.lineTo(canvas.width, canvas.height / 2);
+  */
   ctx.fillStyle = CSSColor(targetColor);
   ctx.strokeStyle = 'white';
   // ctx.lineWidth = 5;
